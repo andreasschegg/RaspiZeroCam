@@ -84,6 +84,12 @@ class Camera:
         time.sleep(0.5)
         self.start(width, height, fps)
 
+    def throttle_fps(self, new_fps: int) -> None:
+        if not self._picam2 or not self._running:
+            return
+        self._picam2.set_controls({"FrameRate": float(new_fps)})
+        logger.info(f"Throttled FPS to {new_fps}")
+
     @property
     def is_running(self) -> bool:
         return self._running

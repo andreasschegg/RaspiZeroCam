@@ -1,5 +1,6 @@
 # app/main.py
 import logging
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Query
@@ -19,6 +20,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 _config: AppConfig = load_config()
+_throttled: bool = False
 
 
 @asynccontextmanager
@@ -32,6 +34,25 @@ async def lifespan(app: FastAPI):
             pass  # Retry until connected
     wifi_thread = threading.Thread(target=wifi_boot, daemon=True)
     wifi_thread.start()
+
+    # CPU auto-throttle: reduce FPS if CPU sustained >90%
+    def cpu_throttle_monitor():
+        global _throttled
+        while True:
+            time.sleep(5)
+            usage = get_system_status()["cpu_usage"]
+            if usage > 90 and not _throttled:
+                reduced_fps = max(5, _config.fps // 2)
+                camera.throttle_fps(reduced_fps)
+                _throttled = True
+                logger.warning(f"CPU at {usage}% — throttled FPS to {reduced_fps}")
+            elif usage < 70 and _throttled:
+                camera.throttle_fps(_config.fps)
+                _throttled = False
+                logger.info(f"CPU at {usage}% — restored FPS to {_config.fps}")
+
+    throttle_thread = threading.Thread(target=cpu_throttle_monitor, daemon=True)
+    throttle_thread.start()
 
     camera.start(
         width=_config.resolution_width,
@@ -87,6 +108,7 @@ def snapshot_info():
 def api_status():
     status = get_system_status()
     status["camera_running"] = camera.is_running
+    status["fps_throttled"] = _throttled
     return status
 
 
