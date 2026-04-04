@@ -1,0 +1,93 @@
+# app/camera.py
+import threading
+import time
+import logging
+
+logger = logging.getLogger(__name__)
+
+try:
+    from picamera2 import Picamera2
+    from picamera2.encoders import MJPEGEncoder
+    from picamera2.outputs import FileOutput
+    HAS_PICAMERA2 = True
+except ImportError:
+    HAS_PICAMERA2 = False
+
+
+class FrameBuffer:
+    def __init__(self):
+        self._frame: bytes | None = None
+        self._condition = threading.Condition()
+
+    def update(self, frame: bytes) -> None:
+        with self._condition:
+            self._frame = frame
+            self._condition.notify_all()
+
+    def wait_for_frame(self, timeout: float = 2.0) -> bytes | None:
+        with self._condition:
+            if self._frame is None:
+                self._condition.wait(timeout=timeout)
+            return self._frame
+
+
+class _StreamOutput:
+    """Custom output that picamera2's MJPEGEncoder writes JPEG frames to."""
+
+    def __init__(self, buffer: FrameBuffer):
+        self._buffer = buffer
+
+    def write(self, data: bytes) -> None:
+        self._buffer.update(data)
+
+    def flush(self) -> None:
+        pass
+
+
+class Camera:
+    def __init__(self):
+        self._picam2: Picamera2 | None = None
+        self._buffer = FrameBuffer()
+        self._running = False
+
+    @property
+    def buffer(self) -> FrameBuffer:
+        return self._buffer
+
+    def start(self, width: int = 640, height: int = 480, fps: int = 15) -> None:
+        if not HAS_PICAMERA2:
+            logger.warning("picamera2 not available — camera disabled")
+            return
+
+        self._picam2 = Picamera2()
+        config = self._picam2.create_video_configuration(
+            main={"size": (width, height), "format": "RGB888"}
+        )
+        self._picam2.configure(config)
+        self._picam2.set_controls({"FrameRate": float(fps)})
+
+        encoder = MJPEGEncoder()
+        output = FileOutput(_StreamOutput(self._buffer))
+        self._picam2.start_recording(encoder, output)
+        self._running = True
+        logger.info(f"Camera started: {width}x{height} @ {fps}fps")
+
+    def stop(self) -> None:
+        if self._picam2 and self._running:
+            self._picam2.stop_recording()
+            self._picam2.close()
+            self._running = False
+            logger.info("Camera stopped")
+
+    def restart(self, width: int, height: int, fps: int) -> None:
+        self.stop()
+        time.sleep(0.5)
+        self.start(width, height, fps)
+
+    @property
+    def is_running(self) -> bool:
+        return self._running
+
+
+# Singleton instance
+camera = Camera()
