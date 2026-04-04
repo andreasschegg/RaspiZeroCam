@@ -11,7 +11,9 @@ from app.camera import camera
 from app.config import AppConfig, load_config, save_config
 from app.status import get_system_status
 from app.stream import generate_mjpeg_frames, render_overlay
-from app.wifi import scan_networks, connect_to_network, get_saved_networks, delete_network
+import threading
+
+from app.wifi import scan_networks, connect_to_network, get_saved_networks, delete_network, ensure_connected
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,6 +25,14 @@ _config: AppConfig = load_config()
 async def lifespan(app: FastAPI):
     global _config
     _config = load_config()
+
+    # WiFi boot sequence (non-blocking for AP mode — portal still needs to serve)
+    def wifi_boot():
+        while not ensure_connected():
+            pass  # Retry until connected
+    wifi_thread = threading.Thread(target=wifi_boot, daemon=True)
+    wifi_thread.start()
+
     camera.start(
         width=_config.resolution_width,
         height=_config.resolution_height,

@@ -1,5 +1,9 @@
 import subprocess
+import time
+import logging
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -86,3 +90,50 @@ def stop_ap() -> None:
         ["nmcli", "connection", "down", "Hotspot"],
         capture_output=True, text=True
     )
+
+
+AP_TIMEOUT_SECONDS = 300  # 5 minutes
+
+
+def ensure_connected() -> bool:
+    """Try saved networks first. If none connect, start AP and wait for config."""
+    saved = get_saved_networks()
+    if saved:
+        result = subprocess.run(
+            ["nmcli", "-t", "-f", "ACTIVE,SSID", "device", "wifi"],
+            capture_output=True, text=True
+        )
+        for line in result.stdout.strip().split("\n"):
+            if line.startswith("yes:"):
+                logger.info(f"Already connected to {line.split(':')[1]}")
+                return True
+
+        for network in saved:
+            logger.info(f"Trying saved network: {network}")
+            res = subprocess.run(
+                ["nmcli", "connection", "up", network],
+                capture_output=True, text=True
+            )
+            if res.returncode == 0:
+                logger.info(f"Connected to {network}")
+                return True
+
+    logger.info("No known network found — starting AP fallback")
+    start_ap()
+
+    start_time = time.time()
+    while time.time() - start_time < AP_TIMEOUT_SECONDS:
+        time.sleep(10)
+        result = subprocess.run(
+            ["nmcli", "-t", "-f", "ACTIVE,SSID", "device", "wifi"],
+            capture_output=True, text=True
+        )
+        for line in result.stdout.strip().split("\n"):
+            if line.startswith("yes:") and "RaspiZeroCam" not in line:
+                logger.info("Connected via config portal")
+                stop_ap()
+                return True
+
+    logger.info("AP timeout — retrying network scan")
+    stop_ap()
+    return False
