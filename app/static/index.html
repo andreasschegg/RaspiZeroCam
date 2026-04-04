@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaspiZeroCam</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, sans-serif; background: #1a1a2e; color: #eee; padding: 16px; }
+        h1 { font-size: 1.3em; margin-bottom: 16px; color: #0ff; }
+        h2 { font-size: 1.1em; margin: 16px 0 8px; color: #0ff; border-bottom: 1px solid #333; padding-bottom: 4px; }
+
+        .card { background: #16213e; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .preview { width: 100%; border-radius: 4px; background: #000; }
+
+        label { display: block; margin: 8px 0 4px; font-size: 0.85em; color: #aaa; }
+        select, input[type="range"], input[type="text"], input[type="password"] {
+            width: 100%; padding: 8px; border: 1px solid #333; border-radius: 4px;
+            background: #0f3460; color: #eee; font-size: 0.9em;
+        }
+        input[type="range"] { padding: 4px 0; }
+        .range-value { font-size: 0.85em; color: #0ff; float: right; }
+
+        button {
+            padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;
+            background: #0ff; color: #1a1a2e; font-weight: bold; font-size: 0.9em; margin: 4px 4px 4px 0;
+        }
+        button:hover { background: #00cccc; }
+        button.danger { background: #e94560; color: #fff; }
+        button.danger:hover { background: #c73e54; }
+
+        .toggle { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+        .toggle input { width: auto; }
+
+        .wifi-list { list-style: none; }
+        .wifi-list li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px; border-bottom: 1px solid #333; cursor: pointer;
+        }
+        .wifi-list li:hover { background: #0f3460; }
+        .signal { font-size: 0.8em; color: #aaa; }
+        .encrypted::after { content: " 🔒"; font-size: 0.8em; }
+
+        .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .status-item { font-size: 0.85em; }
+        .status-label { color: #aaa; }
+        .status-value { color: #0ff; font-weight: bold; }
+
+        .saved-list { list-style: none; }
+        .saved-list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #222; }
+
+        #msg { padding: 8px; margin: 8px 0; border-radius: 4px; display: none; font-size: 0.85em; }
+        #msg.ok { display: block; background: #0a3d2a; color: #0f8; }
+        #msg.err { display: block; background: #3d0a0a; color: #f55; }
+    </style>
+</head>
+<body>
+    <h1>RaspiZeroCam</h1>
+    <div id="msg"></div>
+
+    <div class="card">
+        <h2>Live Preview</h2>
+        <img class="preview" id="preview" src="/stream" alt="Camera stream">
+    </div>
+
+    <div class="card">
+        <h2>Camera Settings</h2>
+        <label>Resolution</label>
+        <select id="resolution">
+            <option value="320x240">320x240</option>
+            <option value="640x480" selected>640x480</option>
+            <option value="800x600">800x600</option>
+            <option value="1280x720">1280x720</option>
+        </select>
+
+        <label>FPS <span class="range-value" id="fpsVal">15</span></label>
+        <input type="range" id="fps" min="5" max="30" value="15">
+
+        <label>JPEG Quality <span class="range-value" id="qualityVal">70</span></label>
+        <input type="range" id="quality" min="30" max="95" value="70">
+
+        <div class="toggle">
+            <input type="checkbox" id="rotation">
+            <label for="rotation" style="display:inline; margin:0;">Rotate 180°</label>
+        </div>
+        <div class="toggle">
+            <input type="checkbox" id="overlay">
+            <label for="overlay" style="display:inline; margin:0;">Status Overlay</label>
+        </div>
+        <button onclick="saveConfig()">Apply</button>
+    </div>
+
+    <div class="card">
+        <h2>WiFi Configuration</h2>
+        <button onclick="scanWifi()">Scan Networks</button>
+        <ul class="wifi-list" id="wifiList"></ul>
+        <label>SSID</label>
+        <input type="text" id="ssid" placeholder="Network name">
+        <label>Password</label>
+        <input type="password" id="wifiPass" placeholder="Password">
+        <button onclick="connectWifi()">Connect</button>
+
+        <h2>Saved Networks</h2>
+        <ul class="saved-list" id="savedList"></ul>
+        <button onclick="loadSaved()">Refresh</button>
+    </div>
+
+    <div class="card">
+        <h2>System Status</h2>
+        <div class="status-grid" id="statusGrid"></div>
+        <button onclick="loadStatus()">Refresh</button>
+    </div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function msg(text, ok) {
+    const el = $('msg');
+    el.textContent = text;
+    el.className = ok ? 'ok' : 'err';
+    setTimeout(() => el.style.display = 'none', 3000);
+}
+
+async function loadConfig() {
+    const r = await fetch('/api/config');
+    const c = await r.json();
+    $('resolution').value = c.resolution_width + 'x' + c.resolution_height;
+    $('fps').value = c.fps; $('fpsVal').textContent = c.fps;
+    $('quality').value = c.jpeg_quality; $('qualityVal').textContent = c.jpeg_quality;
+    $('rotation').checked = c.rotation === 180;
+    $('overlay').checked = c.overlay;
+}
+
+async function saveConfig() {
+    const res = $('resolution').value.split('x');
+    const body = {
+        resolution_width: parseInt(res[0]),
+        resolution_height: parseInt(res[1]),
+        fps: parseInt($('fps').value),
+        jpeg_quality: parseInt($('quality').value),
+        rotation: $('rotation').checked ? 180 : 0,
+        overlay: $('overlay').checked,
+    };
+    const r = await fetch('/api/config', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+    if (r.ok) {
+        msg('Settings applied', true);
+        $('preview').src = '/stream?overlay=' + body.overlay + '&t=' + Date.now();
+    } else {
+        msg('Failed to apply settings', false);
+    }
+}
+
+async function scanWifi() {
+    const r = await fetch('/config/wifi/scan', { method: 'POST' });
+    const nets = await r.json();
+    $('wifiList').innerHTML = nets.map(n =>
+        `<li onclick="$('ssid').value='${n.ssid}'">
+            <span class="${n.encrypted ? 'encrypted' : ''}">${n.ssid}</span>
+            <span class="signal">${n.signal}%</span>
+        </li>`
+    ).join('');
+}
+
+async function connectWifi() {
+    const body = { ssid: $('ssid').value, password: $('wifiPass').value };
+    const r = await fetch('/config/wifi', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+    const d = await r.json();
+    msg(d.connected ? 'Connected to ' + d.ssid : 'Connection failed', d.connected);
+}
+
+async function loadSaved() {
+    const r = await fetch('/config/wifi/saved');
+    const nets = await r.json();
+    $('savedList').innerHTML = nets.map(n =>
+        `<li><span>${n}</span><button class="danger" onclick="deleteWifi('${n}')">Delete</button></li>`
+    ).join('');
+}
+
+async function deleteWifi(name) {
+    await fetch('/config/wifi/' + encodeURIComponent(name), { method: 'DELETE' });
+    loadSaved();
+}
+
+async function loadStatus() {
+    const r = await fetch('/api/status');
+    const s = await r.json();
+    $('statusGrid').innerHTML = `
+        <div class="status-item"><span class="status-label">CPU Temp</span><br><span class="status-value">${s.cpu_temperature}°C</span></div>
+        <div class="status-item"><span class="status-label">CPU Usage</span><br><span class="status-value">${s.cpu_usage}%</span></div>
+        <div class="status-item"><span class="status-label">RAM</span><br><span class="status-value">${s.memory.usage_percent}% (${s.memory.available_mb}MB free)</span></div>
+        <div class="status-item"><span class="status-label">WiFi</span><br><span class="status-value">${s.wifi.ssid || 'N/A'} (${s.wifi.signal_dbm} dBm)</span></div>
+        <div class="status-item"><span class="status-label">IP</span><br><span class="status-value">${s.wifi.ip_address || 'N/A'}</span></div>
+        <div class="status-item"><span class="status-label">Uptime</span><br><span class="status-value">${Math.floor(s.uptime_seconds / 60)}m</span></div>
+        <div class="status-item"><span class="status-label">Camera</span><br><span class="status-value">${s.camera_running ? 'Running' : 'Stopped'}</span></div>
+        <div class="status-item"><span class="status-label">Stream Clients</span><br><span class="status-value">${s.stream_clients || 0}</span></div>
+    `;
+}
+
+$('fps').oninput = () => $('fpsVal').textContent = $('fps').value;
+$('quality').oninput = () => $('qualityVal').textContent = $('quality').value;
+
+loadConfig();
+loadStatus();
+loadSaved();
+</script>
+</body>
+</html>
