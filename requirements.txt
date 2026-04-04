@@ -1,6 +1,6 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
-picamera2==0.3.22
+# picamera2 is installed as system package (python3-picamera2) — do not pip install
 pillow==10.4.0
 pydantic==2.9.0
 pytest==8.3.0
