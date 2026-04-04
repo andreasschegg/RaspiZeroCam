@@ -10,7 +10,15 @@ def _make_fake_jpeg() -> bytes:
 
 def test_mjpeg_frame_format():
     buffer = FrameBuffer()
-    buffer.update(_make_fake_jpeg())
+
+    import threading
+    import time as _time
+
+    def feed():
+        _time.sleep(0.05)
+        buffer.update(_make_fake_jpeg())
+
+    threading.Thread(target=feed, daemon=True).start()
 
     frames = generate_mjpeg_frames(buffer, overlay=False)
     chunk = next(frames)
@@ -54,7 +62,15 @@ def test_overlay_renders_text_on_image():
 
 def test_generate_frames_with_overlay():
     buffer = FrameBuffer()
-    buffer.update(_make_fake_jpeg())
+
+    import threading
+    import time as _time
+
+    def feed():
+        _time.sleep(0.05)
+        buffer.update(_make_fake_jpeg())
+
+    threading.Thread(target=feed, daemon=True).start()
 
     with patch("app.stream.render_overlay", return_value=b"overlaid_jpeg") as mock_overlay, \
          patch("app.stream.get_system_status", return_value={}):

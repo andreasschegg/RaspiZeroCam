@@ -4,6 +4,9 @@ import time
 
 _boot_time = time.time()
 
+_prev_idle = 0
+_prev_total = 0
+
 
 def get_cpu_temperature() -> float:
     try:
@@ -14,13 +17,18 @@ def get_cpu_temperature() -> float:
 
 
 def get_cpu_usage() -> float:
+    global _prev_idle, _prev_total
     with open("/proc/stat", "r") as f:
         parts = f.readline().split()
     idle = int(parts[4])
     total = sum(int(p) for p in parts[1:])
-    if total == 0:
+    d_idle = idle - _prev_idle
+    d_total = total - _prev_total
+    _prev_idle = idle
+    _prev_total = total
+    if d_total == 0:
         return 0.0
-    return round((1 - idle / total) * 100, 1)
+    return round((1 - d_idle / d_total) * 100, 1)
 
 
 def get_memory_usage() -> dict:
@@ -44,11 +52,11 @@ def get_wifi_info() -> dict:
         if not line:
             continue
         parts = line.split(":")
-        if len(parts) >= 3:
+        if len(parts) >= 4 and parts[0] == "yes":
             return {
-                "ssid": parts[0],
-                "signal_dbm": parts[1],
-                "ip_address": parts[2],
+                "ssid": parts[1],
+                "signal_dbm": parts[2],
+                "ip_address": parts[3],
             }
     return {"ssid": "", "signal_dbm": "", "ip_address": ""}
 

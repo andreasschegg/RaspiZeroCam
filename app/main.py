@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 _config: AppConfig = load_config()
 _throttled: bool = False
+_stream_clients: int = 0
 
 
 @asynccontextmanager
@@ -58,6 +59,8 @@ async def lifespan(app: FastAPI):
         width=_config.resolution_width,
         height=_config.resolution_height,
         fps=_config.fps,
+        rotation=_config.rotation,
+        jpeg_quality=_config.jpeg_quality,
     )
     logger.info("RaspiZeroCam started")
     yield
@@ -73,13 +76,23 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.get("/stream")
 def stream(overlay: bool = Query(False)):
+    global _stream_clients
+    _stream_clients += 1
     use_overlay = overlay or _config.overlay
+
+    def counted_generator():
+        global _stream_clients
+        try:
+            yield from generate_mjpeg_frames(
+                camera.buffer,
+                overlay=use_overlay,
+                config=_config.model_dump() if use_overlay else None,
+            )
+        finally:
+            _stream_clients -= 1
+
     return StreamingResponse(
-        generate_mjpeg_frames(
-            camera.buffer,
-            overlay=use_overlay,
-            config=_config.model_dump() if use_overlay else None,
-        ),
+        counted_generator(),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
 
@@ -109,6 +122,7 @@ def api_status():
     status = get_system_status()
     status["camera_running"] = camera.is_running
     status["fps_throttled"] = _throttled
+    status["stream_clients"] = _stream_clients
     return status
 
 
@@ -141,6 +155,8 @@ def api_put_config(updates: dict):
         new_config.resolution_width != _config.resolution_width
         or new_config.resolution_height != _config.resolution_height
         or new_config.fps != _config.fps
+        or new_config.rotation != _config.rotation
+        or new_config.jpeg_quality != _config.jpeg_quality
     )
 
     _config = new_config
@@ -151,6 +167,8 @@ def api_put_config(updates: dict):
             width=_config.resolution_width,
             height=_config.resolution_height,
             fps=_config.fps,
+            rotation=_config.rotation,
+            jpeg_quality=_config.jpeg_quality,
         )
 
     return _config.model_dump()

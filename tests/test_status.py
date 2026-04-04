@@ -1,4 +1,5 @@
 # tests/test_status.py
+import app.status as status_module
 from unittest.mock import patch, mock_open
 from app.status import get_cpu_temperature, get_cpu_usage, get_memory_usage, get_wifi_info, get_system_status
 
@@ -16,9 +17,20 @@ def test_cpu_temperature_file_missing():
 
 
 def test_parse_cpu_usage():
+    # Reset global state so the delta is calculated from zero baseline
+    status_module._prev_idle = 0
+    status_module._prev_total = 0
+
     stat_lines = "cpu  1000 200 300 5000 100 0 50 0 0 0\n"
+    # First call sets the baseline (returns 0 because d_total > 0 from 0)
     with patch("builtins.open", mock_open(read_data=stat_lines)):
+        get_cpu_usage()
+
+    # Second call with higher values shows actual usage
+    stat_lines2 = "cpu  1100 200 350 5200 100 0 50 0 0 0\n"
+    with patch("builtins.open", mock_open(read_data=stat_lines2)):
         usage = get_cpu_usage()
+
     assert isinstance(usage, float)
     assert 0.0 <= usage <= 100.0
 
@@ -33,7 +45,7 @@ def test_parse_memory_usage():
 
 
 def test_wifi_info_connected():
-    nmcli_output = "MyNetwork:72:192.168.4.100"
+    nmcli_output = "yes:MyNetwork:72:192.168.4.100"
     with patch("subprocess.run") as mock_run:
         mock_run.return_value.stdout = nmcli_output
         mock_run.return_value.returncode = 0
@@ -45,7 +57,7 @@ def test_wifi_info_connected():
 
 def test_wifi_info_disconnected():
     with patch("subprocess.run") as mock_run:
-        mock_run.return_value.stdout = ""
+        mock_run.return_value.stdout = "no:OtherNet:30::"
         mock_run.return_value.returncode = 0
         info = get_wifi_info()
     assert info["ssid"] == ""

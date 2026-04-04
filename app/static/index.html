@@ -114,6 +114,10 @@
 <script>
 const $ = id => document.getElementById(id);
 
+function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function msg(text, ok) {
     const el = $('msg');
     el.textContent = text;
@@ -154,8 +158,8 @@ async function scanWifi() {
     const r = await fetch('/config/wifi/scan', { method: 'POST' });
     const nets = await r.json();
     $('wifiList').innerHTML = nets.map(n =>
-        `<li onclick="$('ssid').value='${n.ssid}'">
-            <span class="${n.encrypted ? 'encrypted' : ''}">${n.ssid}</span>
+        `<li onclick="$('ssid').value='${esc(n.ssid)}'">
+            <span class="${n.encrypted ? 'encrypted' : ''}">${esc(n.ssid)}</span>
             <span class="signal">${n.signal}%</span>
         </li>`
     ).join('');
@@ -172,7 +176,7 @@ async function loadSaved() {
     const r = await fetch('/config/wifi/saved');
     const nets = await r.json();
     $('savedList').innerHTML = nets.map(n =>
-        `<li><span>${n}</span><button class="danger" onclick="deleteWifi('${n}')">Delete</button></li>`
+        `<li><span>${esc(n)}</span><button class="danger" onclick="deleteWifi('${esc(n)}')">Delete</button></li>`
     ).join('');
 }
 
