@@ -167,6 +167,8 @@ def api_put_config(updates: dict):
     save_config(_config)
 
     if resolution_changed:
+        global _throttled
+        _throttled = False  # Manual config change overrides any active throttle
         camera.restart(
             width=_config.resolution_width,
             height=_config.resolution_height,

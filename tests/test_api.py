@@ -35,7 +35,7 @@ def test_get_config(client):
     assert response.status_code == 200
     data = response.json()
     assert data["resolution_width"] == 640
-    assert data["fps"] == 5
+    assert data["fps"] == 7
 
 
 def test_put_config(client):

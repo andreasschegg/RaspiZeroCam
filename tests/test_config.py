@@ -18,7 +18,7 @@ def test_default_config_values():
     config = AppConfig()
     assert config.resolution_width == 640
     assert config.resolution_height == 480
-    assert config.fps == 5
+    assert config.fps == 7
     assert config.jpeg_quality == 60
     assert config.rotation == 0
     assert config.overlay is False
@@ -35,7 +35,7 @@ def test_save_and_load_config():
 def test_load_missing_file_returns_defaults():
     loaded = load_config("nonexistent.json")
     assert loaded.resolution_width == 640
-    assert loaded.fps == 5
+    assert loaded.fps == 7
 
 
 def test_partial_update():

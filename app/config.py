@@ -11,7 +11,7 @@ class AppConfig(BaseModel):
     # Pi Zero 2 W and higher can handle higher FPS comfortably.
     resolution_width: int = 640
     resolution_height: int = 480
-    fps: int = 5
+    fps: int = 7
     jpeg_quality: int = 60
     rotation: int = 0
     overlay: bool = False
