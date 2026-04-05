@@ -44,21 +44,36 @@ def get_memory_usage() -> dict:
 
 
 def get_wifi_info() -> dict:
+    # Get SSID + signal from active WiFi connection (IN-USE is marked with "*")
     result = subprocess.run(
-        ["nmcli", "-t", "-f", "ACTIVE,SSID,SIGNAL,IP4.ADDRESS", "device", "wifi"],
+        ["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL", "device", "wifi", "list"],
         capture_output=True, text=True
     )
+    ssid = ""
+    signal = ""
     for line in result.stdout.strip().split("\n"):
         if not line:
             continue
         parts = line.split(":")
-        if len(parts) >= 4 and parts[0] == "yes":
-            return {
-                "ssid": parts[1],
-                "signal_dbm": parts[2],
-                "ip_address": parts[3],
-            }
-    return {"ssid": "", "signal_dbm": "", "ip_address": ""}
+        if len(parts) >= 3 and parts[0] == "*":
+            ssid = parts[1]
+            signal = parts[2]
+            break
+
+    # Get IP address separately from the wlan0 device
+    ip_result = subprocess.run(
+        ["nmcli", "-t", "-f", "IP4.ADDRESS", "device", "show", "wlan0"],
+        capture_output=True, text=True
+    )
+    ip_address = ""
+    for line in ip_result.stdout.strip().split("\n"):
+        if line.startswith("IP4.ADDRESS"):
+            # Format: IP4.ADDRESS[1]:192.168.33.168/24
+            value = line.split(":", 1)[1] if ":" in line else ""
+            ip_address = value.split("/")[0] if "/" in value else value
+            break
+
+    return {"ssid": ssid, "signal_dbm": signal, "ip_address": ip_address}
 
 
 def get_uptime_seconds() -> int:

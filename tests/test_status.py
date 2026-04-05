@@ -1,6 +1,6 @@
 # tests/test_status.py
 import app.status as status_module
-from unittest.mock import patch, mock_open
+from unittest.mock import patch, mock_open, MagicMock
 from app.status import get_cpu_temperature, get_cpu_usage, get_memory_usage, get_wifi_info, get_system_status
 
 
@@ -45,10 +45,14 @@ def test_parse_memory_usage():
 
 
 def test_wifi_info_connected():
-    nmcli_output = "yes:MyNetwork:72:192.168.4.100"
+    # First call returns wifi list, second call returns IP address
+    wifi_list = " :OtherNet:55\n*:MyNetwork:72\n :ThirdNet:40"
+    ip_output = "IP4.ADDRESS[1]:192.168.4.100/24"
     with patch("subprocess.run") as mock_run:
-        mock_run.return_value.stdout = nmcli_output
-        mock_run.return_value.returncode = 0
+        mock_run.side_effect = [
+            MagicMock(stdout=wifi_list, returncode=0),
+            MagicMock(stdout=ip_output, returncode=0),
+        ]
         info = get_wifi_info()
     assert info["ssid"] == "MyNetwork"
     assert info["signal_dbm"] == "72"
@@ -56,9 +60,12 @@ def test_wifi_info_connected():
 
 
 def test_wifi_info_disconnected():
+    wifi_list = " :OtherNet:30"
     with patch("subprocess.run") as mock_run:
-        mock_run.return_value.stdout = "no:OtherNet:30::"
-        mock_run.return_value.returncode = 0
+        mock_run.side_effect = [
+            MagicMock(stdout=wifi_list, returncode=0),
+            MagicMock(stdout="", returncode=0),
+        ]
         info = get_wifi_info()
     assert info["ssid"] == ""
     assert info["ip_address"] == ""
