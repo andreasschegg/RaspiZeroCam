@@ -80,11 +80,27 @@ def get_uptime_seconds() -> int:
     return int(time.time() - _boot_time)
 
 
+# Cache for get_system_status — nmcli calls are expensive on Pi Zero
+_status_cache: dict | None = None
+_status_cache_time: float = 0.0
+_STATUS_CACHE_TTL = 10.0  # seconds
+
+
 def get_system_status() -> dict:
-    return {
+    global _status_cache, _status_cache_time
+    now = time.time()
+    if _status_cache is not None and (now - _status_cache_time) < _STATUS_CACHE_TTL:
+        # Return cached data with fresh uptime
+        cached = dict(_status_cache)
+        cached["uptime_seconds"] = get_uptime_seconds()
+        return cached
+
+    _status_cache = {
         "cpu_temperature": get_cpu_temperature(),
         "cpu_usage": get_cpu_usage(),
         "memory": get_memory_usage(),
         "wifi": get_wifi_info(),
         "uptime_seconds": get_uptime_seconds(),
     }
+    _status_cache_time = now
+    return dict(_status_cache)

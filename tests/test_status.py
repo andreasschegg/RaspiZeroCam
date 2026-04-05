@@ -72,6 +72,9 @@ def test_wifi_info_disconnected():
 
 
 def test_system_status_returns_all_fields():
+    # Clear cache before test
+    status_module._status_cache = None
+    status_module._status_cache_time = 0.0
     with patch("app.status.get_cpu_temperature", return_value=45.0), \
          patch("app.status.get_cpu_usage", return_value=23.5), \
          patch("app.status.get_memory_usage", return_value={"total_mb": 500.0, "available_mb": 300.0, "usage_percent": 40.0}), \
@@ -83,3 +86,23 @@ def test_system_status_returns_all_fields():
     assert status["memory"]["total_mb"] == 500.0
     assert status["wifi"]["ssid"] == "Test"
     assert status["uptime_seconds"] == 3600
+
+
+def test_system_status_caches_within_ttl():
+    # Clear cache before test
+    status_module._status_cache = None
+    status_module._status_cache_time = 0.0
+    calls = {"count": 0}
+
+    def counting_wifi():
+        calls["count"] += 1
+        return {"ssid": "Test", "signal_dbm": "50", "ip_address": "10.0.0.1"}
+
+    with patch("app.status.get_cpu_temperature", return_value=45.0), \
+         patch("app.status.get_cpu_usage", return_value=10.0), \
+         patch("app.status.get_memory_usage", return_value={"total_mb": 500.0, "available_mb": 300.0, "usage_percent": 40.0}), \
+         patch("app.status.get_wifi_info", side_effect=counting_wifi):
+        get_system_status()
+        get_system_status()
+        get_system_status()
+    assert calls["count"] == 1  # Only one call due to caching

@@ -32,16 +32,20 @@ async def lifespan(app: FastAPI):
     # WiFi boot sequence (non-blocking for AP mode — portal still needs to serve)
     def wifi_boot():
         while not ensure_connected():
-            pass  # Retry until connected
+            time.sleep(5)  # Wait before retry
     wifi_thread = threading.Thread(target=wifi_boot, daemon=True)
     wifi_thread.start()
 
     # CPU auto-throttle: reduce FPS if CPU sustained >90%
+    # Reads CPU directly without triggering cache refresh (lightweight check).
     def cpu_throttle_monitor():
         global _throttled
+        from app.status import get_cpu_usage
+        # Prime the CPU usage sample so the first real check isn't 100%
+        get_cpu_usage()
         while True:
-            time.sleep(5)
-            usage = get_system_status()["cpu_usage"]
+            time.sleep(30)
+            usage = get_cpu_usage()
             if usage > 90 and not _throttled:
                 reduced_fps = max(5, _config.fps // 2)
                 camera.throttle_fps(reduced_fps)
