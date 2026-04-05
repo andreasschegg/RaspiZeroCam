@@ -5,9 +5,11 @@ from pydantic import BaseModel, field_validator
 
 
 class AppConfig(BaseModel):
-    resolution_width: int = 640
-    resolution_height: int = 480
-    fps: int = 15
+    # Conservative defaults for Pi Zero W v1.1 (single-core ARMv6, software JPEG)
+    # Pi Zero 2 W and higher can handle 640x480 @ 15fps comfortably
+    resolution_width: int = 320
+    resolution_height: int = 240
+    fps: int = 10
     jpeg_quality: int = 70
     rotation: int = 0
     overlay: bool = False
