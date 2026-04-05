@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from picamera2 import Picamera2
-    from picamera2.encoders import MJPEGEncoder
+    from picamera2.encoders import JpegEncoder
     from picamera2.outputs import FileOutput
     HAS_PICAMERA2 = True
 except ImportError:
@@ -79,8 +79,7 @@ class Camera:
         self._picam2.configure(config)
         self._picam2.set_controls({"FrameRate": float(fps)})
 
-        encoder = MJPEGEncoder()
-        encoder.q = jpeg_quality
+        encoder = JpegEncoder(q=jpeg_quality)
         output = FileOutput(_StreamOutput(self._buffer))
         self._picam2.start_recording(encoder, output)
         self._running = True
