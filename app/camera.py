@@ -1,4 +1,5 @@
 # app/camera.py
+import io
 import threading
 import time
 import logging
@@ -30,14 +31,19 @@ class FrameBuffer:
             return self._frame
 
 
-class _StreamOutput:
+class _StreamOutput(io.BufferedIOBase):
     """Custom output that picamera2's MJPEGEncoder writes JPEG frames to."""
 
     def __init__(self, buffer: FrameBuffer):
+        super().__init__()
         self._buffer = buffer
 
-    def write(self, data: bytes) -> None:
-        self._buffer.update(data)
+    def writable(self) -> bool:
+        return True
+
+    def write(self, data) -> int:
+        self._buffer.update(bytes(data))
+        return len(data)
 
     def flush(self) -> None:
         pass
