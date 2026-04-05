@@ -60,10 +60,8 @@ class Camera:
 
         self._picam2 = Picamera2()
 
-        transform = None
-        if rotation == 180:
-            from libcamera import Transform
-            transform = Transform(hflip=True, vflip=True)
+        from libcamera import Transform
+        transform = Transform(hflip=True, vflip=True) if rotation == 180 else Transform()
 
         config = self._picam2.create_video_configuration(
             main={"size": (width, height), "format": "RGB888"},
