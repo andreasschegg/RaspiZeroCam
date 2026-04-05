@@ -69,8 +69,11 @@ class Camera:
         from libcamera import Transform
         transform = Transform(hflip=True, vflip=True) if rotation == 180 else Transform()
 
+        # Use picamera2's default format (XBGR8888) — what MJPEGEncoder expects natively.
+        # Setting "RGB888" here causes color channel swaps because picamera2's
+        # "RGB888" is actually BGR byte order (confusing naming).
         config = self._picam2.create_video_configuration(
-            main={"size": (width, height), "format": "RGB888"},
+            main={"size": (width, height)},
             transform=transform,
         )
         self._picam2.configure(config)
