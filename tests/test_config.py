@@ -16,10 +16,10 @@ def cleanup():
 
 def test_default_config_values():
     config = AppConfig()
-    assert config.resolution_width == 320
-    assert config.resolution_height == 240
-    assert config.fps == 10
-    assert config.jpeg_quality == 70
+    assert config.resolution_width == 640
+    assert config.resolution_height == 480
+    assert config.fps == 5
+    assert config.jpeg_quality == 60
     assert config.rotation == 0
     assert config.overlay is False
 
@@ -34,8 +34,8 @@ def test_save_and_load_config():
 
 def test_load_missing_file_returns_defaults():
     loaded = load_config("nonexistent.json")
-    assert loaded.resolution_width == 320
-    assert loaded.fps == 10
+    assert loaded.resolution_width == 640
+    assert loaded.fps == 5
 
 
 def test_partial_update():
@@ -43,7 +43,7 @@ def test_partial_update():
     updated = config.model_copy(update={"fps": 25, "overlay": True})
     assert updated.fps == 25
     assert updated.overlay is True
-    assert updated.resolution_width == 320
+    assert updated.resolution_width == 640
 
 
 def test_validation_rejects_invalid_fps():

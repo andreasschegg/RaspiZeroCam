@@ -5,12 +5,14 @@ from pydantic import BaseModel, field_validator
 
 
 class AppConfig(BaseModel):
-    # Conservative defaults for Pi Zero W v1.1 (single-core ARMv6, software JPEG)
-    # Pi Zero 2 W and higher can handle 640x480 @ 15fps comfortably
-    resolution_width: int = 320
-    resolution_height: int = 240
-    fps: int = 10
-    jpeg_quality: int = 70
+    # Conservative defaults for Pi Zero W v1.1 (single-core ARMv6, software JPEG).
+    # The imx219 sensor doesn't reliably support sub-640x480 modes via VC4
+    # pipeline, so we keep resolution at 640x480 and reduce FPS instead.
+    # Pi Zero 2 W and higher can handle higher FPS comfortably.
+    resolution_width: int = 640
+    resolution_height: int = 480
+    fps: int = 5
+    jpeg_quality: int = 60
     rotation: int = 0
     overlay: bool = False
 
