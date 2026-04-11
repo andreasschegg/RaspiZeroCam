@@ -11,7 +11,8 @@
         h2 { font-size: 1.1em; margin: 16px 0 8px; color: #0ff; border-bottom: 1px solid #333; padding-bottom: 4px; }
 
         .card { background: #16213e; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-        .preview { width: 100%; border-radius: 4px; background: #000; aspect-ratio: 16/9; border: 0; }
+        .preview { width: 100%; border-radius: 4px; background: #000; aspect-ratio: 16/9; border: 0; display: block; }
+        video.preview { object-fit: contain; }
 
         label { display: block; margin: 8px 0 4px; font-size: 0.85em; color: #aaa; }
         select, input[type="range"], input[type="text"], input[type="password"] {
@@ -67,15 +68,12 @@
     <div id="msg"></div>
 
     <div class="card">
-        <h2>Live Preview (WebRTC)</h2>
-        <iframe class="preview" id="preview" src="about:blank" allow="autoplay; fullscreen" allowfullscreen></iframe>
+        <h2>Live Preview (HLS)</h2>
+        <video class="preview" id="preview" controls muted playsinline autoplay></video>
         <p style="font-size:0.75em; color:#aaa; margin-top:6px;">
-            Tap the video to start playback. If the preview stays black or the browser
-            blocks cross-origin embedding, use the button below to open the full player.
+            HLS playback works in all browsers. Latency is typically 2-6 seconds.
+            For low-latency viewing use the RTSP URL below with VLC or the MyLevo app.
         </p>
-        <a id="openFullscreen" href="#" target="_blank" rel="noopener">
-            <button style="width:100%; font-size:1em; padding:12px;">Open Live Stream in New Tab</button>
-        </a>
     </div>
 
     <div class="card">
@@ -134,8 +132,44 @@
         <button onclick="loadStatus()">Refresh</button>
     </div>
 
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
+
+let hlsInstance = null;
+
+function attachHls(videoEl, url) {
+    // Tear down any previous instance (needed on config changes).
+    if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+    }
+
+    // Safari (macOS + iOS) plays HLS natively — no hls.js needed.
+    if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+        videoEl.src = url;
+        return;
+    }
+
+    // Everyone else: hls.js.
+    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+        hlsInstance = new Hls({
+            liveSyncDurationCount: 2,
+            liveMaxLatencyDurationCount: 5,
+            lowLatencyMode: true,
+        });
+        hlsInstance.loadSource(url);
+        hlsInstance.attachMedia(videoEl);
+        hlsInstance.on(Hls.Events.ERROR, (evt, data) => {
+            if (data.fatal) {
+                console.error('HLS error', data);
+                msg('Stream error: ' + data.type, false);
+            }
+        });
+    } else {
+        msg('Your browser does not support HLS playback', false);
+    }
+}
 
 function esc(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -163,10 +197,8 @@ async function loadStreams() {
     $('urlWebrtc').textContent = s.webrtc;
     $('urlRtsp').textContent = s.rtsp;
     $('urlHls').textContent = s.hls;
-    // Point the live preview iframe at the mediamtx WebRTC player.
-    $('preview').src = s.webrtc;
-    // Fullscreen fallback link — same URL, opens in a new tab without iframe restrictions.
-    $('openFullscreen').href = s.webrtc;
+    // Feed the HLS stream into the video element via hls.js (Safari does it natively).
+    attachHls($('preview'), s.hls);
 }
 
 function copyUrl(el) {
@@ -185,8 +217,8 @@ async function saveConfig() {
     const r = await fetch('/api/config', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
     if (r.ok) {
         msg('Settings applied — stream restarting...', true);
-        // Give mediamtx ~2s to restart, then reload the preview iframe.
-        setTimeout(() => { $('preview').src = $('preview').src; }, 2500);
+        // Give mediamtx ~3s to restart, then reattach the HLS source.
+        setTimeout(() => loadStreams(), 3000);
     } else {
         const err = await r.json();
         msg('Validation error: ' + JSON.stringify(err.detail || err), false);
