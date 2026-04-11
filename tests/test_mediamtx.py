@@ -50,6 +50,8 @@ def test_generate_yaml_has_all_protocols():
     assert "webrtcAddress: :8889" in yaml
     assert "hlsAddress: :8888" in yaml
     assert "apiAddress: :9997" in yaml
+    # TCP ICE fallback is required to bypass browser mDNS host-address obfuscation.
+    assert "webrtcLocalTCPAddress: :8189" in yaml
 
 
 def test_apply_config_writes_yaml_and_restarts(tmp_path):

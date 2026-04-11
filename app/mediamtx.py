@@ -75,6 +75,12 @@ rtspAddress: :{RTSP_PORT}
 webrtc: yes
 webrtcAddress: :{WEBRTC_PORT}
 {additional_hosts_line}
+# TCP fallback bypasses the mDNS host-address obfuscation that Chrome/Firefox
+# apply by default. With this set, mediamtx advertises a passive TCP candidate
+# that the browser connects to directly — no need for mediamtx to resolve the
+# browser's .local candidates back to an IP. Uses the same port number as the
+# UDP ICE listener (8189); TCP/UDP namespaces don't conflict.
+webrtcLocalTCPAddress: :8189
 
 hls: yes
 hlsAddress: :{HLS_PORT}
