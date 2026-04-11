@@ -75,7 +75,7 @@ def test_restart_service_handles_failure():
 
 def test_get_stream_urls_builds_correct_scheme():
     urls = mediamtx.get_stream_urls("192.168.33.55")
-    assert urls["webrtc"] == "http://192.168.33.55:8889/cam"
+    assert urls["webrtc"] == "http://192.168.33.55:8889/cam/"  # trailing slash intentional
     assert urls["rtsp"] == "rtsp://192.168.33.55:8554/cam"
     assert urls["hls"] == "http://192.168.33.55:8888/cam/index.m3u8"
 

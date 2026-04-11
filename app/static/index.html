@@ -68,10 +68,14 @@
 
     <div class="card">
         <h2>Live Preview (WebRTC)</h2>
-        <iframe class="preview" id="preview" src="about:blank" allow="autoplay"></iframe>
+        <iframe class="preview" id="preview" src="about:blank" allow="autoplay; fullscreen" allowfullscreen></iframe>
         <p style="font-size:0.75em; color:#aaa; margin-top:6px;">
-            Latency is typically 150-300ms. If the preview stays black, check that mediamtx is running.
+            Tap the video to start playback. If the preview stays black or the browser
+            blocks cross-origin embedding, use the button below to open the full player.
         </p>
+        <a id="openFullscreen" href="#" target="_blank" rel="noopener">
+            <button style="width:100%; font-size:1em; padding:12px;">Open Live Stream in New Tab</button>
+        </a>
     </div>
 
     <div class="card">
@@ -161,6 +165,8 @@ async function loadStreams() {
     $('urlHls').textContent = s.hls;
     // Point the live preview iframe at the mediamtx WebRTC player.
     $('preview').src = s.webrtc;
+    // Fullscreen fallback link — same URL, opens in a new tab without iframe restrictions.
+    $('openFullscreen').href = s.webrtc;
 }
 
 function copyUrl(el) {

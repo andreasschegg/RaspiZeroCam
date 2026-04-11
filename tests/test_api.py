@@ -71,8 +71,8 @@ def test_get_streams(client):
         response = client.get("/api/streams")
     assert response.status_code == 200
     data = response.json()
-    assert data["webrtc"].startswith("http://192.168.33.55:8889")
-    assert data["rtsp"].startswith("rtsp://192.168.33.55:8554")
+    assert data["webrtc"] == "http://192.168.33.55:8889/cam/"
+    assert data["rtsp"] == "rtsp://192.168.33.55:8554/cam"
     assert data["hls"].startswith("http://192.168.33.55:8888")
 
 

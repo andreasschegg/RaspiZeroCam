@@ -113,9 +113,13 @@ def get_path_status(path_name: str = MEDIAMTX_PATH_NAME) -> dict[str, Any] | Non
 
 
 def get_stream_urls(host: str) -> dict[str, str]:
-    """Build the stream URLs that clients can use to connect."""
+    """Build the stream URLs that clients can use to connect.
+
+    The WebRTC player URL uses a trailing slash — mediamtx 301-redirects
+    /cam → /cam/ which some iframe implementations don't follow cleanly.
+    """
     return {
-        "webrtc": f"http://{host}:{WEBRTC_PORT}/{MEDIAMTX_PATH_NAME}",
+        "webrtc": f"http://{host}:{WEBRTC_PORT}/{MEDIAMTX_PATH_NAME}/",
         "rtsp": f"rtsp://{host}:{RTSP_PORT}/{MEDIAMTX_PATH_NAME}",
         "hls": f"http://{host}:{HLS_PORT}/{MEDIAMTX_PATH_NAME}/index.m3u8",
     }
