@@ -100,11 +100,16 @@ paths:
     rpiCameraBitrate: {bitrate_bps}
     rpiCameraHFlip: {hflip}
     rpiCameraVFlip: {vflip}
-    # Camera Module 3 (imx708) has autofocus hardware. Without these the
-    # image stays at whatever lens position the driver defaults to —
-    # usually uncalibrated and blurry.
+    # Force the 2304x1296 sensor mode (2x2 binning). By default mediamtx picks
+    # 1536x864 (3x3 binning) because it's the closest match to the 720p output
+    # resolution — but 3x3 binning produces a visibly softer image. 2304x1296
+    # is sharper and still runs comfortably at 30fps.
+    rpiCameraMode: 2304:1296:10:P
+    # Continuous autofocus is the default, but kept explicit for clarity.
     rpiCameraAfMode: continuous
     rpiCameraAfRange: normal
+    # Slightly increased sharpness (default 1, range 0-16).
+    rpiCameraSharpness: 2
 """
 # Note: rpiCameraCodec is omitted — H.264 is the default on mediamtx's primary
 # rpiCamera stream and passing an explicit value errors on older versions.
