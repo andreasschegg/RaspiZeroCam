@@ -100,6 +100,11 @@ paths:
     rpiCameraBitrate: {bitrate_bps}
     rpiCameraHFlip: {hflip}
     rpiCameraVFlip: {vflip}
+    # Camera Module 3 (imx708) has autofocus hardware. Without these the
+    # image stays at whatever lens position the driver defaults to —
+    # usually uncalibrated and blurry.
+    rpiCameraAfMode: continuous
+    rpiCameraAfRange: normal
 """
 # Note: rpiCameraCodec is omitted — H.264 is the default on mediamtx's primary
 # rpiCamera stream and passing an explicit value errors on older versions.

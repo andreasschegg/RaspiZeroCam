@@ -17,6 +17,8 @@ def test_generate_yaml_contains_core_settings():
     assert "rpiCameraVFlip: false" in yaml
     # rpiCameraCodec is omitted — H.264 is the default on the primary stream.
     assert "rpiCameraCodec" not in yaml
+    # Camera Module 3 autofocus must be explicitly enabled for sharp images.
+    assert "rpiCameraAfMode: continuous" in yaml
 
 
 def test_generate_yaml_injects_webrtc_additional_hosts():
