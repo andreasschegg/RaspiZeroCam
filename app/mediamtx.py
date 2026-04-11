@@ -80,7 +80,7 @@ webrtcAddress: :{WEBRTC_PORT}
 # that the browser connects to directly — no need for mediamtx to resolve the
 # browser's .local candidates back to an IP. Uses the same port number as the
 # UDP ICE listener (8189); TCP/UDP namespaces don't conflict.
-webrtcLocalTCPAddress: :8189
+webrtcLocalTCPAddress: :8890
 
 hls: yes
 hlsAddress: :{HLS_PORT}
