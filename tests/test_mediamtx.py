@@ -7,7 +7,8 @@ from app.config import AppConfig
 
 def test_generate_yaml_contains_core_settings():
     config = AppConfig(resolution_width=1280, resolution_height=720, fps=30, bitrate_kbps=2000, rotation=0)
-    yaml = mediamtx.generate_yaml(config)
+    with patch("app.mediamtx._detect_lan_ip", return_value="192.168.33.55"):
+        yaml = mediamtx.generate_yaml(config)
     assert "rpiCameraWidth: 1280" in yaml
     assert "rpiCameraHeight: 720" in yaml
     assert "rpiCameraFPS: 30" in yaml
@@ -16,6 +17,18 @@ def test_generate_yaml_contains_core_settings():
     assert "rpiCameraVFlip: false" in yaml
     # rpiCameraCodec is omitted — H.264 is the default on the primary stream.
     assert "rpiCameraCodec" not in yaml
+
+
+def test_generate_yaml_injects_webrtc_additional_hosts():
+    with patch("app.mediamtx._detect_lan_ip", return_value="192.168.33.55"):
+        yaml = mediamtx.generate_yaml(AppConfig())
+    assert "webrtcAdditionalHosts: [192.168.33.55]" in yaml
+
+
+def test_generate_yaml_omits_hosts_when_ip_unknown():
+    with patch("app.mediamtx._detect_lan_ip", return_value=None):
+        yaml = mediamtx.generate_yaml(AppConfig())
+    assert "# webrtcAdditionalHosts" in yaml
 
 
 def test_generate_yaml_rotation_180_sets_both_flips():
