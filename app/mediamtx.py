@@ -84,6 +84,9 @@ webrtcLocalTCPAddress: :8890
 
 hls: yes
 hlsAddress: :{HLS_PORT}
+# Low-Latency HLS: streams partial segments via chunked transfer so hls.js
+# can start playback within ~1-2s instead of the 4-6s typical of regular HLS.
+hlsVariant: lowLatency
 
 rtmp: no
 srt: no

@@ -53,6 +53,8 @@ def test_generate_yaml_has_all_protocols():
     # TCP ICE fallback is required to bypass browser mDNS host-address obfuscation.
     # Port 8890 (not 8189) because some networks/firewalls block the default 8189.
     assert "webrtcLocalTCPAddress: :8890" in yaml
+    # Low-Latency HLS gets browser preview latency down to 1-2s instead of 4-6s.
+    assert "hlsVariant: lowLatency" in yaml
 
 
 def test_apply_config_writes_yaml_and_restarts(tmp_path):
