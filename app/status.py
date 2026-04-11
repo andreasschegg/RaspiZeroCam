@@ -2,6 +2,8 @@
 import subprocess
 import time
 
+from app import mediamtx
+
 _boot_time = time.time()
 
 _prev_idle = 0
@@ -80,19 +82,21 @@ def get_uptime_seconds() -> int:
     return int(time.time() - _boot_time)
 
 
-# Cache for get_system_status — nmcli calls are expensive on Pi Zero
+# Cache for get_system_status — nmcli is fast enough on Pi Zero 2 W to use
+# a short 3-second TTL, which keeps the UI feeling live without hammering nmcli.
 _status_cache: dict | None = None
 _status_cache_time: float = 0.0
-_STATUS_CACHE_TTL = 10.0  # seconds
+_STATUS_CACHE_TTL = 3.0  # seconds
 
 
 def get_system_status() -> dict:
     global _status_cache, _status_cache_time
     now = time.time()
     if _status_cache is not None and (now - _status_cache_time) < _STATUS_CACHE_TTL:
-        # Return cached data with fresh uptime
+        # Return cached data with fresh uptime + mediamtx stream state.
         cached = dict(_status_cache)
         cached["uptime_seconds"] = get_uptime_seconds()
+        cached.update(mediamtx.get_stream_state())
         return cached
 
     _status_cache = {
@@ -103,4 +107,6 @@ def get_system_status() -> dict:
         "uptime_seconds": get_uptime_seconds(),
     }
     _status_cache_time = now
-    return dict(_status_cache)
+    result = dict(_status_cache)
+    result.update(mediamtx.get_stream_state())
+    return result

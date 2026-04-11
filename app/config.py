@@ -1,55 +1,19 @@
 # app/config.py
 import json
 import os
-from pydantic import BaseModel, field_validator
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class AppConfig(BaseModel):
-    # Conservative defaults for Pi Zero W v1.1 (single-core ARMv6, software JPEG).
-    # The imx219 sensor doesn't reliably support sub-640x480 modes via VC4
-    # pipeline, so we keep resolution at 640x480 and reduce FPS instead.
-    # Pi Zero 2 W and higher can handle higher FPS comfortably.
-    resolution_width: int = 640
-    resolution_height: int = 480
-    fps: int = 7
-    jpeg_quality: int = 60
-    rotation: int = 0
-    overlay: bool = False
+    """Camera + stream configuration for Phase 2 (mediamtx + H.264)."""
 
-    @field_validator("fps")
-    @classmethod
-    def validate_fps(cls, v: int) -> int:
-        if not 5 <= v <= 30:
-            raise ValueError(f"fps must be between 5 and 30, got {v}")
-        return v
-
-    @field_validator("jpeg_quality")
-    @classmethod
-    def validate_jpeg_quality(cls, v: int) -> int:
-        if not 30 <= v <= 95:
-            raise ValueError(f"jpeg_quality must be between 30 and 95, got {v}")
-        return v
-
-    @field_validator("rotation")
-    @classmethod
-    def validate_rotation(cls, v: int) -> int:
-        if v not in (0, 180):
-            raise ValueError(f"rotation must be 0 or 180, got {v}")
-        return v
-
-    @field_validator("resolution_width")
-    @classmethod
-    def validate_width(cls, v: int) -> int:
-        if not 320 <= v <= 1280:
-            raise ValueError(f"resolution_width must be between 320 and 1280, got {v}")
-        return v
-
-    @field_validator("resolution_height")
-    @classmethod
-    def validate_height(cls, v: int) -> int:
-        if not 240 <= v <= 720:
-            raise ValueError(f"resolution_height must be between 240 and 720, got {v}")
-        return v
+    resolution_width: int = Field(default=1280, ge=640, le=1920)
+    resolution_height: int = Field(default=720, ge=480, le=1080)
+    fps: int = Field(default=30, ge=15, le=60)
+    bitrate_kbps: int = Field(default=2000, ge=500, le=5000)
+    rotation: Literal[0, 180] = 0
 
 
 CONFIG_PATH = "/opt/raspizerocam/config.json"

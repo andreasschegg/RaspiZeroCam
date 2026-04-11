@@ -98,13 +98,7 @@ all range checks declaratively. The `overlay` field is gone.
 | `/api/config`   | GET    | Current `AppConfig` as JSON                        |
 | `/api/config`   | PUT    | Update config → save → regenerate mediamtx.yml → restart |
 | `/api/status`   | GET    | CPU temp, CPU usage, RAM, WiFi, uptime, mediamtx state |
-| `/api/streams`  | GET    | `{ webrtc, rtsp, hls, snapshot }` URLs             |
-
-### Snapshot
-
-| Endpoint        | Method | Description                                        |
-|-----------------|--------|----------------------------------------------------|
-| `/snapshot`     | GET    | Proxy to mediamtx HTTP snapshot API                |
+| `/api/streams`  | GET    | `{ webrtc, rtsp, hls }` URLs                       |
 
 ### WiFi Management (unchanged from Phase 1)
 
@@ -125,7 +119,9 @@ all range checks declaratively. The `overlay` field is gone.
 ### Removed from Phase 1
 
 - `/stream` (MJPEG multipart) — replaced by mediamtx WebRTC/RTSP
-- `/snapshot/info` (Pillow overlay on JPEG) — overlay feature dropped
+- `/snapshot` and `/snapshot/info` — mediamtx has no native snapshot endpoint for
+  H.264 streams, and the browser/MyLevo preview already shows a live frame.
+  Dropped to keep the codebase lean; can be re-added via ffmpeg later if needed.
 - All `?overlay=true` query parameter logic
 
 ## Status Response

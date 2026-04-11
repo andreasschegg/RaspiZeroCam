@@ -1,5 +1,5 @@
 [Unit]
-Description=RaspiZeroCam Streaming Server
+Description=RaspiZeroCam Config & Status API
 After=network-online.target NetworkManager.service
 Wants=network-online.target
 

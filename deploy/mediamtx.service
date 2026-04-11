@@ -1,0 +1,16 @@
+[Unit]
+Description=mediamtx streaming server (RTSP/WebRTC/HLS with hardware H.264)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/mediamtx /opt/raspizerocam/mediamtx.yml
+Restart=always
+RestartSec=2
+# mediamtx needs access to /dev/video* and /dev/vchiq for libcamera
+SupplementaryGroups=video
+
+[Install]
+WantedBy=multi-user.target
