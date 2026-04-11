@@ -56,8 +56,9 @@ paths:
     rpiCameraBitrate: {bitrate_bps}
     rpiCameraHFlip: {hflip}
     rpiCameraVFlip: {vflip}
-    rpiCameraCodec: h264
 """
+# Note: rpiCameraCodec is omitted — H.264 is the default on mediamtx's primary
+# rpiCamera stream and passing an explicit value errors on older versions.
 
 
 def write_yaml(config: AppConfig, path: str = MEDIAMTX_CONFIG_PATH) -> None:

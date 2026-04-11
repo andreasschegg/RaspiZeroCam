@@ -14,7 +14,8 @@ def test_generate_yaml_contains_core_settings():
     assert "rpiCameraBitrate: 2000000" in yaml  # Kbps → bps
     assert "rpiCameraHFlip: false" in yaml
     assert "rpiCameraVFlip: false" in yaml
-    assert "rpiCameraCodec: h264" in yaml
+    # rpiCameraCodec is omitted — H.264 is the default on the primary stream.
+    assert "rpiCameraCodec" not in yaml
 
 
 def test_generate_yaml_rotation_180_sets_both_flips():
