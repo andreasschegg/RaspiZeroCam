@@ -108,6 +108,10 @@ paths:
     # Continuous autofocus is the default, but kept explicit for clarity.
     rpiCameraAfMode: continuous
     rpiCameraAfRange: normal
+    # I-frame every second (30 frames at 30fps). Default is 60 (= 2s) which
+    # adds up to 2s startup/re-sync latency for clients like ExoPlayer that
+    # can only start decoding at a keyframe.
+    rpiCameraIDRPeriod: {config.fps}
     # Slightly increased sharpness (default 1, range 0-16).
     rpiCameraSharpness: 2
 """
